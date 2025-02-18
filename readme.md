@@ -1,47 +1,112 @@
-# CRUD Code Test 
+# Customer Management CRUD Application
 
-Please read each note very carefully!
-Feel free to add/change the project structure to a clean architecture to your view.
-and if you are not able to work on the FrontEnd project, you can add a Swagger UI
-in a new Front project.
+This is a clean architecture implementation of a customer management system using .NET 7, following CQRS pattern and Domain-Driven Design principles.
 
-Create a simple CRUD application with .NET that implements the below model:
+## Technologies Used
+
+- .NET 7
+- Blazor WebAssembly
+- Entity Framework Core
+- SQL Server
+- MediatR for CQRS
+- FluentValidation
+- Google LibPhoneNumber
+- Docker & Docker Compose
+- xUnit for Testing
+
+## Features
+
+- Clean Architecture implementation
+- CQRS pattern with MediatR
+- Domain-Driven Design
+- Test-Driven Development
+- Behavior-Driven Development
+- Comprehensive validation including:
+  - Phone number validation using Google LibPhoneNumber
+  - Email validation
+  - Bank account number validation
+  - Unique customer constraints (FirstName + LastName + DateOfBirth)
+  - Unique email constraint
+- Docker support with SQL Server integration
+- Blazor WebAssembly UI
+
+## Project Structure
+
+- `Mc2.CrudTest.Domain`: Contains entities, interfaces, and domain logic
+- `Mc2.CrudTest.Application`: Contains application logic, CQRS commands/queries
+- `Mc2.CrudTest.Infrastructure`: Contains data access and external service implementations
+- `Mc2.CrudTest.Presentation`: Contains the Blazor WebAssembly UI
+- `Mc2.CrudTest.UnitTests`: Contains unit tests
+- `Mc2.CrudTest.AcceptanceTests`: Contains acceptance tests
+
+## Getting Started
+
+### Prerequisites
+
+- .NET 7 SDK
+- Docker Desktop
+- Visual Studio 2022 or VS Code
+
+### Running with Docker
+
+1. Clone the repository
+2. Navigate to the root directory
+3. Run the following commands:
+
+```bash
+docker-compose build
+docker-compose up
 ```
-Customer {
-	FirstName
-	LastName
-	DateOfBirth
-	PhoneNumber
-	Email
-	BankAccountNumber
-}
+
+The application will be available at:
+
+- API: http://localhost:5000
+- Blazor UI: http://localhost:5000
+
+### Running Locally
+
+1. Clone the repository
+2. Navigate to the root directory
+3. Update the connection string in `appsettings.json` if needed
+4. Run the following commands:
+
+```bash
+dotnet restore
+dotnet build
+cd Mc2.CrudTest.Presentation/Server
+dotnet run
 ```
-## Practices and patterns:
 
-- [TDD](https://docs.microsoft.com/en-us/visualstudio/test/quick-start-test-driven-development-with-test-explorer?view=vs-2022)
-- [BDD](https://en.wikipedia.org/wiki/Behavior-driven_development)
-- [DDD](https://en.wikipedia.org/wiki/Domain-driven_design)
-- [Clean architecture](https://github.com/jasontaylordev/CleanArchitecture)
-- [CQRS](https://en.wikipedia.org/wiki/Command%E2%80%93query_separation#Command_query_responsibility_separation) pattern ([Event sourcing](https://en.wikipedia.org/wiki/Domain-driven_design#Event_sourcing)).
-- Clean git commits that show your work progress, each commit must provide your decision making process for each change or selection.
+### Running Tests
 
-### Validations
+```bash
+dotnet test
+```
 
-- During Create; validate the phone number to be a valid *mobile* number only (Please use [Google LibPhoneNumber](https://github.com/google/libphonenumber) to validate number at the backend).
+## Design Decisions
 
-- A Valid email and a valid bank account number must be checked before submitting the form.
+1. **Clean Architecture**: Implemented to ensure separation of concerns and maintainability
+2. **CQRS Pattern**: Used to separate read and write operations
+3. **Domain-Driven Design**: Implemented to focus on the core domain logic
+4. **Validation Strategy**:
+   - Phone numbers are validated using Google LibPhoneNumber
+   - Unique constraints are enforced at both application and database levels
+   - All validations are centralized in the Application layer
+5. **Storage Optimization**:
+   - Phone numbers are stored as varchar(50) to minimize space
+   - Appropriate indexes are created for frequent queries
+6. **Docker Support**:
+   - Multi-stage build for optimal image size
+   - Includes SQL Server container
+   - Volume persistence for database data
 
-- Customers must be unique in the database: By `Firstname`, `Lastname`, and `DateOfBirth`.
+## Contributing
 
-- Email must be unique in the database.
+1. Create a feature branch
+2. Commit your changes
+3. Push to the branch
+4. Create a Pull Request
 
-### Storage
+## License
 
-- Store the phone number in a database with minimized space storage (choose `varchar`/`string`, or `ulong` whichever store less space).
-
-### Delivery
-- Please clone this repository in a new GitHub repository in private mode and share with ID: `mason-chase` in private mode on github.com, make sure you do not erase my commits and then create a [pull request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests) (code review).
-
-## Nice to do:
-- Blazor Web.
-- Docker-compose project that loads database service automatically which `docker-compose up`
+This project is licensed under the MIT License.
