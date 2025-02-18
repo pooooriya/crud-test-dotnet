@@ -1,0 +1,17 @@
+version: "3.4"
+
+services:
+  mc2.crudtest.presentation.server:
+    image: ${DOCKER_REGISTRY-}mc2crudtestpresentationserver
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:80"
+      - "5001:443"
+    depends_on:
+      - db
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+volumes:
+  sqlserver_data:
