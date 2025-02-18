@@ -5,7 +5,7 @@ As an operator I wish to be able to Create, Update, Delete customers and list al
 Scenario: Create a new valid customer successfully
     Given I have the following customer information
         | FirstName | LastName | DateOfBirth | PhoneNumber   | Email              | BankAccountNumber |
-        | John      | Doe      | 1990-01-01  | +1234567890  | john.doe@email.com | 123456789        |
+        | John      | Doe      | 1990-01-01  | +12125551234 | john.doe@email.com | 123456789         |
     When I send a request to create the customer
     Then the customer should be created successfully
     And I should be able to retrieve the customer by ID

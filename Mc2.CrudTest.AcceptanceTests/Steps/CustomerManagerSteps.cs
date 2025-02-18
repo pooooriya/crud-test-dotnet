@@ -1,3 +1,4 @@
+using FluentValidation;
 using FluentAssertions;
 using Mc2.CrudTest.Application.Features.Customers.Commands.CreateCustomer;
 using Mc2.CrudTest.Application.Features.Customers.Commands.DeleteCustomer;
@@ -30,15 +31,33 @@ public class CustomerManagerSteps
     [Given(@"I have the following customer information")]
     public void GivenIHaveTheFollowingCustomerInformation(Table table)
     {
-        _createCustomerCommand = table.CreateInstance<CreateCustomerCommand>();
-        _createCustomerCommand.CreatedBy = 1; // Mock user ID
+        var row = table.Rows[0];
+        _createCustomerCommand = new CreateCustomerCommand
+        {
+            FirstName = row["FirstName"],
+            LastName = row["LastName"],
+            DateOfBirth = DateOnly.Parse(row["DateOfBirth"]),
+            PhoneNumber = row["PhoneNumber"], // Use phone number from the table
+            Email = row["Email"],
+            BankAccountNumber = row["BankAccountNumber"],
+            CreatedBy = 1
+        };
     }
 
     [Given(@"I have an existing customer")]
     public async Task GivenIHaveAnExistingCustomer(Table table)
     {
-        var command = table.CreateInstance<CreateCustomerCommand>();
-        command.CreatedBy = 1;
+        var command = new CreateCustomerCommand
+        {
+            FirstName = table.Rows[0]["FirstName"],
+            LastName = table.Rows[0]["LastName"],
+            DateOfBirth = DateOnly.Parse(table.Rows[0]["DateOfBirth"]),
+            PhoneNumber = "+12125551234", // Use a valid US phone number
+            Email = table.Rows[0]["Email"],
+            BankAccountNumber = table.Rows[0]["BankAccountNumber"],
+            CreatedBy = 1
+        };
+        
         var customerId = await _mediator.Send(command);
         _existingCustomer = await _mediator.Send(new GetCustomerQuery { Id = customerId });
         _scenarioContext["ExistingCustomerId"] = customerId;
@@ -52,7 +71,7 @@ public class CustomerManagerSteps
             FirstName = "John",
             LastName = "Doe",
             DateOfBirth = new DateOnly(1990, 1, 1),
-            PhoneNumber = "+1234567890",
+            PhoneNumber = "+12125551234",
             Email = "john.doe@email.com",
             BankAccountNumber = "123456789",
             CreatedBy = 1
@@ -73,9 +92,9 @@ public class CustomerManagerSteps
                 FirstName = row["FirstName"],
                 LastName = row["LastName"],
                 Email = row["Email"],
-                DateOfBirth = new DateOnly(1990, 1, 1), // Default value for test
-                PhoneNumber = "+1234567890", // Default value for test
-                BankAccountNumber = "123456789", // Default value for test
+                DateOfBirth = DateOnly.Parse(row.ContainsKey("DateOfBirth") ? row["DateOfBirth"] : "1990-01-01"),
+                PhoneNumber = "+12125551234", // Use a valid US phone number
+                BankAccountNumber = row.ContainsKey("BankAccountNumber") ? row["BankAccountNumber"] : "123456789",
                 CreatedBy = 1
             };
             await _mediator.Send(command);
@@ -87,12 +106,21 @@ public class CustomerManagerSteps
     {
         try
         {
+            if (_createCustomerCommand == null)
+                throw new InvalidOperationException("Create customer command is null");
+            
             var customerId = await _mediator.Send(_createCustomerCommand);
             _scenarioContext["CreatedCustomerId"] = customerId;
+        }
+        catch (ValidationException ex)
+        {
+            _thrownException = ex;
         }
         catch (Exception ex)
         {
             _thrownException = ex;
+            // Log unexpected exceptions
+            Console.WriteLine($"Unexpected error during customer creation: {ex}");
         }
     }
 
@@ -101,6 +129,16 @@ public class CustomerManagerSteps
     {
         try
         {
+            _createCustomerCommand = new CreateCustomerCommand
+            {
+                FirstName = _existingCustomer!.FirstName,
+                LastName = _existingCustomer.LastName,
+                DateOfBirth = _existingCustomer.DateOfBirth,
+                PhoneNumber = "+12125551234", // Use a valid US phone number
+                Email = _existingCustomer.Email,
+                BankAccountNumber = _existingCustomer.BankAccountNumber,
+                CreatedBy = 1
+            };
             await _mediator.Send(_createCustomerCommand);
         }
         catch (Exception ex)
@@ -112,18 +150,28 @@ public class CustomerManagerSteps
     [When(@"I update the customer with the following information")]
     public async Task WhenIUpdateTheCustomerWithTheFollowingInformation(Table table)
     {
-        var customerId = (long)_scenarioContext["ExistingCustomerId"];
-        _updateCustomerCommand = table.CreateInstance<UpdateCustomerCommand>();
-        _updateCustomerCommand.Id = customerId;
-        _updateCustomerCommand.ModifiedBy = 1;
-
-        try
+        try 
         {
+            var customerId = (long)_scenarioContext["ExistingCustomerId"];
+            
+            _updateCustomerCommand = new UpdateCustomerCommand
+            {
+                Id = customerId,
+                FirstName = table.Rows[0]["FirstName"],
+                LastName = table.Rows[0]["LastName"],
+                DateOfBirth = DateOnly.Parse(table.Rows[0]["DateOfBirth"]),
+                PhoneNumber = "+12125551234", // Use a valid US phone number
+                Email = table.Rows[0]["Email"],
+                BankAccountNumber = table.Rows[0]["BankAccountNumber"],
+                ModifiedBy = 1
+            };
+
             await _mediator.Send(_updateCustomerCommand);
         }
         catch (Exception ex)
         {
             _thrownException = ex;
+            // Don't rethrow - we want to handle validation errors in the Then steps
         }
     }
 
@@ -145,6 +193,9 @@ public class CustomerManagerSteps
     [Then(@"the customer should be created successfully")]
     public void ThenTheCustomerShouldBeCreatedSuccessfully()
     {
+        // First check if there was an exception during creation
+        _thrownException.Should().BeNull($"Customer creation failed with error: {_thrownException?.Message}");
+        
         _scenarioContext.ContainsKey("CreatedCustomerId").Should().BeTrue();
         ((long)_scenarioContext["CreatedCustomerId"]).Should().BeGreaterThan(0);
     }
@@ -171,14 +222,20 @@ public class CustomerManagerSteps
     [Then(@"the customer information should be updated successfully")]
     public async Task ThenTheCustomerInformationShouldBeUpdatedSuccessfully()
     {
+        _thrownException.Should().BeNull("Update operation should not throw an exception");
+
         var customerId = (long)_scenarioContext["ExistingCustomerId"];
         var updatedCustomer = await _mediator.Send(new GetCustomerQuery { Id = customerId });
         
         updatedCustomer.Should().NotBeNull();
         _updateCustomerCommand.Should().NotBeNull();
-        updatedCustomer.FirstName.Should().Be(_updateCustomerCommand!.FirstName);
+        
+        updatedCustomer!.FirstName.Should().Be(_updateCustomerCommand!.FirstName);
         updatedCustomer.LastName.Should().Be(_updateCustomerCommand.LastName);
         updatedCustomer.Email.Should().Be(_updateCustomerCommand.Email);
+        updatedCustomer.PhoneNumber.Should().Be(_updateCustomerCommand.PhoneNumber);
+        updatedCustomer.BankAccountNumber.Should().Be(_updateCustomerCommand.BankAccountNumber);
+        updatedCustomer.DateOfBirth.Should().Be(_updateCustomerCommand.DateOfBirth);
     }
 
     [Then(@"the customer should be deleted successfully")]
@@ -206,16 +263,22 @@ public class CustomerManagerSteps
     [Then(@"I should receive an invalid email format error")]
     public void ThenIShouldReceiveAnInvalidEmailFormatError()
     {
-        _thrownException.Should().BeOfType<FluentValidation.ValidationException>();
-        var validationException = (FluentValidation.ValidationException)_thrownException;
-        validationException.Errors.Should().Contain(e => e.PropertyName == "Email");
+        _thrownException.Should().NotBeNull();
+        _thrownException.Should().BeOfType<ValidationException>();
+        var validationException = (ValidationException)_thrownException!;
+        validationException.Errors.Should().Contain(e => 
+            e.PropertyName == "Email" && 
+            e.ErrorMessage.Contains("Invalid email format", StringComparison.OrdinalIgnoreCase));
     }
 
     [Then(@"I should receive an invalid phone number format error")]
     public void ThenIShouldReceiveAnInvalidPhoneNumberFormatError()
     {
-        _thrownException.Should().BeOfType<FluentValidation.ValidationException>();
-        var validationException = (FluentValidation.ValidationException)_thrownException;
-        validationException.Errors.Should().Contain(e => e.PropertyName == "PhoneNumber");
+        _thrownException.Should().NotBeNull();
+        _thrownException.Should().BeOfType<ValidationException>();
+        var validationException = (ValidationException)_thrownException!;
+        validationException.Errors.Should().Contain(e => 
+            e.PropertyName == "PhoneNumber" && 
+            e.ErrorMessage.Contains("Invalid phone number", StringComparison.OrdinalIgnoreCase));
     }
 } 

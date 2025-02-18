@@ -16,7 +16,7 @@ public class CustomerConfiguration:IEntityTypeConfiguration<Customer>
         builder.Property(x => x.LastName).HasMaxLength(100).IsRequired();
         builder.Property(x => x.PhoneNumber).HasMaxLength(20).IsRequired();
         builder.Property(x => x.Email).HasMaxLength(255).IsRequired();
-        builder.Property(x => x.BankAccountNumber).HasMaxLength(9).IsRequired();
+        builder.Property(x => x.BankAccountNumber).HasMaxLength(16).IsRequired();
         
         // Unique constraints with soft delete filter
         builder.HasIndex(x => x.Email)

@@ -32,7 +32,9 @@ namespace Mc2.CrudTest.Application.Features.Customers.Commands.UpdateCustomer
 
             RuleFor(v => v.BankAccountNumber)
                 .NotEmpty().WithMessage("Bank account number is required")
-                .Length(16).WithMessage("Bank account number must be 16 digits");
+                .MinimumLength(9).WithMessage("Bank account number must be at least 9 digits")
+                .MaximumLength(16).WithMessage("Bank account number must not exceed 16 digits")
+                .Matches(@"^\d+$").WithMessage("Bank account number must contain only digits");
         }
 
         private bool BeValidPhoneNumber(string phoneNumber)

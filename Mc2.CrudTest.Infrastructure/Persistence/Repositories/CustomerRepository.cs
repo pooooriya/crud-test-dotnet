@@ -20,7 +20,8 @@ namespace Mc2.CrudTest.Infrastructure.Persistence.Repositories
 
         public async Task<Customer?> GetByIdAsync(long entityId, CancellationToken cancellationToken)
         {
-            return await _context.Customers.FindAsync(entityId, cancellationToken);
+            return await _context.Customers
+                .FirstOrDefaultAsync(x => x.Id == entityId && !x.IsDeleted, cancellationToken);
         }
         public async Task AddAsync(Customer entity,CancellationToken cancellationToken)
         {
@@ -34,13 +35,17 @@ namespace Mc2.CrudTest.Infrastructure.Persistence.Repositories
         }
         public async Task<bool> IsCustomerExistAsync(string email, string firstName, string lastName, DateOnly dateOfBirthday, CancellationToken cancellationToken)
         {
-            return await _context.Customers.AnyAsync(c =>
-                !c.IsDeleted && (
-                    c.Email.ToLower() == email.ToLower() || 
-                    (c.FirstName.ToLower() == firstName.ToLower() &&
-                    c.LastName.ToLower() == lastName.ToLower() &&
-                    c.DateOfBirth == dateOfBirthday)
-                ), 
+            var normalizedEmail = email.ToLower();
+            var normalizedFirstName = firstName.ToLower();
+            var normalizedLastName = lastName.ToLower();
+            
+            return await _context.Customers
+                .Where(c => !c.IsDeleted)
+                .AnyAsync(c => 
+                    (c.Email.ToLower() == normalizedEmail) || 
+                    (c.FirstName.ToLower() == normalizedFirstName &&
+                     c.LastName.ToLower() == normalizedLastName &&
+                     c.DateOfBirth == dateOfBirthday), 
                 cancellationToken);
         }
     }

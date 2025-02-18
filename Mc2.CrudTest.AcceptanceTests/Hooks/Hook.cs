@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TechTalk.SpecFlow;
 using BoDi;
+using Mc2.CrudTest.Application.Common.Behaviors;
 using MediatR;
 
 namespace Mc2.CrudTest.AcceptanceTests.Hooks;
@@ -37,10 +38,11 @@ public class Hooks
         // Add repositories
         _services.AddScoped<ICustomerRepository, CustomerRepository>();
 
-        // Add MediatR
+        // Add MediatR with validation pipeline
         _services.AddMediatR(cfg =>
         {
             cfg.RegisterServicesFromAssembly(typeof(CreateCustomerCommand).Assembly);
+            cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
         });
 
         // Add AutoMapper
@@ -56,14 +58,12 @@ public class Hooks
     public void BeforeScenario()
     {
         _scope = _serviceProvider.CreateScope();
-        
-        var mediator = _scope.ServiceProvider.GetRequiredService<IMediator>();
-        _objectContainer.RegisterInstanceAs(mediator);
-
-        // Clean the database
         var dbContext = _scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         dbContext.Database.EnsureDeleted();
         dbContext.Database.EnsureCreated();
+        
+        var mediator = _scope.ServiceProvider.GetRequiredService<IMediator>();
+        _objectContainer.RegisterInstanceAs(mediator);
     }
 
     [AfterScenario]
